@@ -1,519 +1,238 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Mini-RPG dés — "Personne lambda"</title>
-<style>
-  :root{
-    --bg:#0f1724; --panel:#0b1220; --muted:#9aa7b2; --accent:#60a5fa;
-    --red:#ef4444; --blue:#3b82f6; --white:#f8fafc;
-  }
-  body{margin:0;font-family:Inter,system-ui,Segoe UI,Arial;background:linear-gradient(180deg,#071021 0%, #071a2a 100%);color:var(--white)}
-  .wrap{max-width:1100px;margin:24px auto;padding:18px;background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);border-radius:12px}
-  header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
-  h1{margin:0;font-size:20px}
-  .grid{display:grid;grid-template-columns:360px 1fr;gap:14px}
-  .panel{background:var(--panel);padding:12px;border-radius:10px;box-shadow:0 6px 18px rgba(2,6,23,0.6)}
-  .stat{display:flex;justify-content:space-between;margin:6px 0;padding:6px;border-radius:6px;background:linear-gradient(90deg,rgba(255,255,255,0.02),transparent)}
-  button{background:transparent;border:1px solid rgba(255,255,255,0.06);padding:8px 10px;border-radius:8px;color:var(--white);cursor:pointer}
-  button.primary{background:var(--accent);border:none;color:#052033}
-  .dice-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
-  .die{width:44px;height:44px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;box-shadow:0 6px 14px rgba(2,6,23,0.6)}
-  .die.red{background:linear-gradient(180deg,#fff1f0,#fee2e2);color:var(--red);border:2px solid rgba(239,68,68,0.15)}
-  .die.blue{background:linear-gradient(180deg,#eff6ff,#dbeafe);color:var(--blue);border:2px solid rgba(59,130,246,0.12)}
-  .die.white{background:linear-gradient(180deg,#ffffff,#f8fafc);color:#111827;border:2px solid rgba(0,0,0,0.06)}
-  .log{max-height:240px;overflow:auto;padding:8px;background:rgba(255,255,255,0.02);border-radius:8px;margin-top:8px;font-size:13px}
-  .flex{display:flex;gap:8px;align-items:center}
-  .enemy{border:1px solid rgba(255,255,255,0.04);padding:8px;border-radius:8px;margin-bottom:8px}
-  .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-  .big{font-size:18px;font-weight:700}
-  .xpbar{height:12px;background:rgba(255,255,255,0.06);border-radius:8px;overflow:hidden;margin-top:6px}
-  .xpbar > i{display:block;height:100%;background:linear-gradient(90deg,#22c55e,#60a5fa)}
-  .center{text-align:center}
-  small{color:var(--muted)}
-  .row-between{display:flex;justify-content:space-between;align-items:center}
-  .die-mini{width:28px;height:28px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;font-size:13px;margin-right:6px}
-  footer{margin-top:12px;text-align:center;color:var(--muted);font-size:13px}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mini JDR avec Dés</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #1e1e2f;
+      color: #f0f0f0;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    h1 {
+      text-align: center;
+      margin: 20px 0;
+      color: #ffcc00;
+    }
+
+    .buttons {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    button {
+      padding: 12px 20px;
+      border-radius: 12px;
+      border: none;
+      font-size: 16px;
+      cursor: pointer;
+      transition: 0.2s;
+      font-weight: bold;
+    }
+
+    button:hover {
+      transform: scale(1.05);
+    }
+
+    button:active {
+      transform: scale(0.95);
+    }
+
+    .start-btn { background: #ff6666; color: #fff; }
+    .next-btn { background: #66b3ff; color: #fff; }
+
+    .log {
+      flex: 1;
+      background: #2b2b3d;
+      margin: 0 10px 10px 10px;
+      border-radius: 12px;
+      padding: 10px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .dice {
+      display: inline-block;
+      margin: 2px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 18px;
+      text-align: center;
+      min-width: 28px;
+      animation: pop 0.2s;
+    }
+
+    @keyframes pop {
+      0% { transform: scale(0); }
+      60% { transform: scale(1.2); }
+      100% { transform: scale(1); }
+    }
+
+    .phys { background: #ffcccc; border: 2px solid #ff3333; color: #990000; }
+    .ment { background: #cce0ff; border: 2px solid #3399ff; color: #003399; }
+    .bonus { background: #ffffff; border: 2px solid #000; color: #000; }
+
+    .log div {
+      background: #3b3b55;
+      border-radius: 8px;
+      padding: 6px 8px;
+      font-size: 14px;
+    }
+  </style>
 </head>
 <body>
-  <div class="wrap">
-    <header>
-      <div>
-        <h1>Mini-RPG dés — Personne lambda (niveau &amp; progression)</h1>
-        <small>Règles : 1D6 action physique, 1D6 action mentale, 1D4 bonus. PV 10. Résistances 1D6.</small>
-      </div>
-      <div class="row-between">
-        <div style="margin-right:12px"><small>Version simple — tout local</small></div>
-        <button id="resetBtn">Réinitialiser tout</button>
-      </div>
-    </header>
-
-    <div class="grid">
-      <!-- Left: joueur, stats, progression -->
-      <div>
-        <div class="panel">
-          <div class="row-between">
-            <div>
-              <div class="big" id="playerName">Personne lambda</div>
-              <small id="playerLevel">Niveau 1 • 10 PV</small>
-            </div>
-            <div class="center">
-              <div>Score / XP</div>
-              <div class="big" id="playerXP">0 XP</div>
-              <div class="xpbar" title="XP progress">
-                <i id="xpFill" style="width:0%"></i>
-              </div>
-              <small id="xpNext">Prochain niveau : 100 XP</small>
-            </div>
-          </div>
-
-          <hr style="margin:10px 0;border:none;border-top:1px solid rgba(255,255,255,0.03)"/>
-
-          <div>
-            <div class="stat"><div>PV</div><div id="hp">10</div></div>
-            <div class="stat"><div>Actions physiques (d6) - nombre de dés</div><div id="physDiceCount">1</div></div>
-            <div class="stat"><div>Actions mentales (d6) - nombre de dés</div><div id="mentDiceCount">1</div></div>
-            <div class="stat"><div>Dés de résistance physique (d6)</div><div id="physResCount">1</div></div>
-            <div class="stat"><div>Dés de résistance mentale (d6)</div><div id="mentResCount">1</div></div>
-            <div class="stat"><div>Dés bonus (d4)</div><div id="bonusDiceCount">1</div></div>
-
-            <div style="margin-top:10px">
-              <div class="flex">
-                <button id="newEnemyBtn" class="primary">Générer ennemi / Combat</button>
-                <button id="randomEventBtn">Événement aléatoire</button>
-                <button id="healBtn">Soigner (+5 PV)</button>
-              </div>
-              <div style="margin-top:8px"><small>Tour : Détermine l'initiative avec 1d6 (égalité → relancer)</small></div>
-            </div>
-          </div>
-        </div>
-
-        <div style="height:12px"></div>
-
-        <div class="panel">
-          <div class="row-between"><div class="big">Actions de lancer</div><div><small>Le résultat des dés s'affiche ci-dessous</small></div></div>
-
-          <div style="margin-top:10px">
-            <div><strong>Attaquer</strong></div>
-            <div class="controls">
-              <button id="attackPhysBtn">Attaque Physique</button>
-              <button id="attackMentBtn">Attaque Mentale</button>
-              <button id="useItemBtn">Passer / Défendre</button>
-            </div>
-
-            <div style="margin-top:10px">
-              <label><input type="checkbox" id="autoUseBonus" checked/> Utiliser automatiquement 1 dé bonus (d4) quand attaqué</label>
-            </div>
-
-            <div class="dice-row" id="diceDisplay" aria-live="polite" style="margin-top:12px"></div>
-
-            <div class="log" id="log"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Right: ennemi + combat -->
-      <div>
-        <div class="panel">
-          <div class="row-between">
-            <div><div class="big">Cible / Ennemi</div><small>Les ennemis ont le même niveau que le joueur</small></div>
-            <div><small id="battleState">Aucun combat en cours</small></div>
-          </div>
-
-          <div style="margin-top:8px" id="enemyArea"></div>
-
-          <hr style="margin:10px 0;border:none;border-top:1px solid rgba(255,255,255,0.03)"/>
-
-          <div>
-            <div class="big">Initiative</div>
-            <div style="margin-top:6px">
-              <button id="decideInitiativeBtn">Décider qui commence (1d6)</button>
-              <div id="initResult" style="margin-top:8px"></div>
-            </div>
-          </div>
-
-          <div style="margin-top:10px">
-            <div class="big">Progression &amp; montée de niveau</div>
-            <div style="margin-top:8px" id="levelUpArea"></div>
-          </div>
-        </div>
-
-        <div style="height:12px"></div>
-
-        <div class="panel">
-          <div class="big">Historique complet</div>
-          <div class="log" id="fullLog"></div>
-        </div>
-      </div>
-    </div>
-
-    <footer>Règles appliquées : attaque = somme(1 action d6(s) + bonus d4(s)). Résistance = somme(d6 résistance). Si résistance &gt; attaque → 0 dégâts — sinon dégâts = attaque − résistance. XP : combat vaincu / événement résolu.</footer>
+  <h1>Mini Jeu de Rôle avec Dés</h1>
+  <div class="buttons">
+    <button class="start-btn" onclick="startGame()">Nouvelle Partie</button>
+    <button class="next-btn" onclick="nextTurn()">Tour suivant</button>
   </div>
+  <div class="log" id="log"></div>
 
-<script>
-/* ------------------------------
-   Moteur de règles (implémentation)
-   ------------------------------ */
+  <script>
+    class Character {
+      constructor(name, level=1) {
+        this.name = name;
+        this.level = level;
+        this.hp = 10;
+        this.physDice = [6];
+        this.mentDice = [6];
+        this.bonusDice = [4];
+        this.resPhys = [6];
+        this.resMent = [6];
+        this.exp = 0;
+        this.nextLevelExp = 10;
+      }
 
-// UTIL - roll N dice of given faces, returns array
-function rollDice(count, faces) {
-  const res=[];
-  for(let i=0;i<count;i++) res.push(1+Math.floor(Math.random()*faces));
-  return res;
-}
+      rollDice(diceArr, cssClass) {
+        const rolls = diceArr.map(sides => Math.floor(Math.random()*sides)+1);
+        logDice(rolls, cssClass);
+        return rolls.reduce((a,b)=>a+b,0);
+      }
 
-// Format helpers
-function elem(id){return document.getElementById(id)}
-function log(msg, el=elem('log')) {
-  const p=document.createElement('div'); p.innerHTML=msg; el.prepend(p);
-}
+      rollAction(type) {
+        let base = 0;
+        if(type === 'phys') base = this.rollDice(this.physDice, 'phys');
+        if(type === 'ment') base = this.rollDice(this.mentDice, 'ment');
+        const bonus = this.rollDice(this.bonusDice, 'bonus');
+        return base + bonus;
+      }
 
-// Player state
-let player = {
-  name: "Personne lambda",
-  level:1,
-  hp:10,
-  maxHp:10,
-  xp:0,
-  // counts of dice
-  physAction:1,
-  mentAction:1,
-  physRes:1,
-  mentRes:1,
-  bonus:1, // d4
-};
+      rollResistance(type) {
+        if(type==='phys') return this.rollDice(this.resPhys, 'phys');
+        else return this.rollDice(this.resMent, 'ment');
+      }
 
-// XP thresholds : 100 to lvl2, +200 for lvl3, +300 etc. (cumulatif)
-function xpForLevel(l){ // xp required to reach level l from previous - we'll show next threshold
-  if(l<=1) return 100;
-  return 100 * l; // simplified: level 2 -> 200, but we display cumulative below
-}
-function xpToNext(level, currentXp){
-  // compute cumulative required for next level (sum 100,200,...levelNext)
-  let required=0;
-  for(let L=1;L<=level;L++){ required += xpForLevel(L); }
-  return required - currentXp;
-}
-function nextLevelThreshold(level){
-  // total xp required to reach level+1 from 0
-  let total=0;
-  for(let L=1;L<=level;L++) total += xpForLevel(L);
-  return total;
-}
+      takeDamage(dmg, type) {
+        const resist = this.rollResistance(type);
+        if(resist >= dmg) {
+          log(`${this.name} bloque l'attaque (${resist} >= ${dmg}) !`);
+          return;
+        }
+        const taken = dmg - resist;
+        this.hp -= taken;
+        log(`${this.name} subit ${taken} dégâts (${dmg}-${resist}), PV restants: ${this.hp}`);
+      }
 
-// Enemy generator
-function generateEnemy(level){
-  // enemy has hp, level, action type(s) and resistances counts derived from level
-  // For simplicity: enemy action dice count = level (either physical OR mental randomly), resistances = level for both
-  const typ = Math.random() < 0.5 ? 'phys' : 'ment';
-  const enemy = {
-    id: 'E' + Math.random().toString(36).slice(2,8),
-    name: 'Monstre nv'+level,
-    level,
-    hp: 6 + (level-1)*4, // scaling hp
-    maxHp: 6 + (level-1)*4,
-    actionType: typ, // 'phys' or 'ment'
-    actionDice: Math.max(1, level), // number of d6 for enemy action
-    physRes: Math.max(1, level), // number of d6 resistance
-    mentRes: Math.max(1, level),
-    bonus: Math.max(1, Math.round(level/2)), // enemy gets some d4 bonus too
-  };
-  return enemy;
-}
+      gainExp(amount) {
+        this.exp += amount;
+        log(`${this.name} gagne ${amount} EXP (total ${this.exp}/${this.nextLevelExp})`);
+        if(this.exp >= this.nextLevelExp) {
+          this.levelUp();
+        }
+      }
 
-// Current battle state
-let currentEnemy = null;
-let combatOngoing = false;
-let turn = null; // 'player' or 'enemy'
-
-// UI update functions
-function updatePlayerUI(){
-  elem('playerLevel').innerText = `Niveau ${player.level} • ${player.hp} / ${player.maxHp} PV`;
-  elem('hp').innerText = `${player.hp} / ${player.maxHp}`;
-  elem('physDiceCount').innerText = player.physAction;
-  elem('mentDiceCount').innerText = player.mentAction;
-  elem('physResCount').innerText = player.physRes;
-  elem('mentResCount').innerText = player.mentRes;
-  elem('bonusDiceCount').innerText = player.bonus;
-  elem('playerXP').innerText = `${player.xp} XP`;
-  const nextThreshold = nextLevelThreshold(player.level);
-  const totalNeeded = nextThreshold;
-  // progress bar - compute percent relative to nextLevelThreshold (from previous level total)
-  const prevTotal = nextLevelThreshold(player.level-1) || 0;
-  const percent = Math.max(0, Math.min(100, Math.round((player.xp - prevTotal) / (totalNeeded - prevTotal) * 100)));
-  elem('xpFill').style.width = percent + '%';
-  elem('xpNext').innerText = `Prochain niveau à ${totalNeeded} XP (progress ${percent}%)`;
-}
-function updateEnemyUI(){
-  const area = elem('enemyArea'); area.innerHTML = '';
-  if(!currentEnemy){
-    area.innerHTML = '<div class="center"><small>Aucun ennemi actif</small></div>';
-    elem('battleState').innerText = 'Aucun combat en cours';
-    return;
-  }
-  elem('battleState').innerText = `Combat en cours contre ${currentEnemy.name} (PV ${currentEnemy.hp}/${currentEnemy.maxHp})`;
-  const div = document.createElement('div'); div.className='enemy';
-  div.innerHTML = `<div class="row-between"><strong>${currentEnemy.name}</strong><small>Niveau ${currentEnemy.level}</small></div>
-    <div style="margin-top:6px">PV : ${currentEnemy.hp} / ${currentEnemy.maxHp}</div>
-    <div style="margin-top:6px">Action : ${currentEnemy.actionDice}d6 (${currentEnemy.actionType}) • Bonus : ${currentEnemy.bonus}d4</div>
-    <div style="margin-top:6px">Résistances : phys ${currentEnemy.physRes}d6 • ment ${currentEnemy.mentRes}d6</div>
-    <div style="margin-top:8px"><button id="fleeBtn">Tenter de fuir (50%)</button></div>`;
-  area.appendChild(div);
-  // attach flee handler
-  elem('fleeBtn').onclick = () => {
-    if(Math.random() < 0.5){
-      log('<em>Vous parvenez à fuir.</em>');
-      endCombat(false);
-    } else {
-      log('<em>La fuite a échoué — tour ennemi.</em>');
-      enemyTurn();
+      levelUp() {
+        this.level++;
+        this.exp = 0;
+        this.nextLevelExp += 10;
+        log(`${this.name} passe niveau ${this.level}! Choix: ajouter un dé.`);
+        const choice = Math.floor(Math.random()*4);
+        if(choice===0) this.physDice.push(6);
+        if(choice===1) this.mentDice.push(6);
+        if(choice===2) this.bonusDice.push(4);
+        if(choice===3) this.resPhys.push(6);
+        log(`${this.name} ajoute un dé ${['physique','mental','bonus','résistance'][choice]}`);
+      }
     }
-  };
-}
 
-// Display dice visuals
-function showDice(rolls){
-  // rolls: array of {type:'phys'|'ment'|'bonus', values:[...], faces:6|4}
-  const container = elem('diceDisplay'); container.innerHTML='';
-  rolls.forEach(gr=>{
-    gr.values.forEach(v=>{
-      const d=document.createElement('div'); d.className='die';
-      if(gr.type==='phys') d.classList.add('red');
-      else if(gr.type==='ment') d.classList.add('blue');
-      else d.classList.add('white');
-      d.textContent = v;
-      container.appendChild(d);
-    });
-  });
-}
-
-// Combat mechanics: player chooses attack type
-async function playerAttack(type){
-  if(!combatOngoing || turn !== 'player') { log('Ce n\'est pas à vous de jouer.'); return; }
-  if(!currentEnemy) return;
-  // roll player's action dice of chosen type
-  const actionCount = (type === 'phys') ? player.physAction : player.mentAction;
-  const actionRolls = rollDice(actionCount,6);
-  const bonusRolls = player.bonus>0 ? rollDice(player.bonus,4) : [];
-  const attackTotal = actionRolls.reduce((a,b)=>a+b,0) + bonusRolls.reduce((a,b)=>a+b,0);
-
-  // show rolls
-  showDice([{type: type, values: actionRolls, faces:6}, {type:'bonus', values: bonusRolls, faces:4}]);
-  log(`<strong>Attaque (${type})</strong> - dés action: [${actionRolls.join(', ')}] + bonus: [${bonusRolls.join(', ')}] → <strong>${attackTotal}</strong>`);
-
-  // defender resistance
-  const resCount = (type === 'phys') ? currentEnemy.physRes : currentEnemy.mentRes;
-  const resRolls = rollDice(resCount,6);
-  const resTotal = resRolls.reduce((a,b)=>a+b,0);
-  log(`Résistance ennemi (${type}) : [${resRolls.join(', ')}] → <strong>${resTotal}</strong>`);
-
-  // compare
-  let damage = 0;
-  if(resTotal > attackTotal){
-    log('<em>La résistance de l\'ennemi est supérieure → dégâts annulés.</em>');
-  } else {
-    damage = attackTotal - resTotal;
-    currentEnemy.hp = Math.max(0, currentEnemy.hp - damage);
-    log(`<span style="color:#f59e0b">Dégâts infligés : ${damage} → PV ennemi restants ${currentEnemy.hp}/${currentEnemy.maxHp}</span>`);
-  }
-
-  updateEnemyUI();
-  if(currentEnemy.hp <= 0){
-    // enemy defeated
-    const xpGain = 100 * currentEnemy.level; // reward: 100 * level (arbitraire mais cohérent)
-    log(`<strong>Ennemi vaincu ! Vous gagnez ${xpGain} XP.</strong>`);
-    grantXP(xpGain);
-    endCombat(true);
-    return;
-  }
-
-  // pass turn to enemy
-  turn = 'enemy';
-  setTimeout(enemyTurn, 800);
-}
-
-// Enemy's turn
-function enemyTurn(){
-  if(!combatOngoing || !currentEnemy) return;
-  // enemy chooses action type defined by its actionType
-  const type = currentEnemy.actionType;
-  const actionRolls = rollDice(currentEnemy.actionDice,6);
-  const bonusRolls = currentEnemy.bonus>0 ? rollDice(currentEnemy.bonus,4) : [];
-  const attackTotal = actionRolls.reduce((a,b)=>a+b,0) + bonusRolls.reduce((a,b)=>a+b,0);
-  // show enemy roll (we'll display as red if phys, blue if ment)
-  showDice([{type: type, values: actionRolls}, {type:'bonus', values: bonusRolls}]);
-  log(`<em>Attaque ennemi (${type})</em> dés: [${actionRolls.join(', ')}] + bonus: [${bonusRolls.join(', ')}] → ${attackTotal}`);
-
-  // player resistance
-  const resCount = (type === 'phys') ? player.physRes : player.mentRes;
-  const resRolls = rollDice(resCount,6);
-  const resTotal = resRolls.reduce((a,b)=>a+b,0);
-  log(`Votre résistance (${type}) : [${resRolls.join(', ')}] → ${resTotal}`);
-
-  let damage=0;
-  if(resTotal > attackTotal) {
-    log('<em>Votre résistance annule les dégâts.</em>');
-  } else {
-    damage = attackTotal - resTotal;
-    player.hp = Math.max(0, player.hp - damage);
-    log(`<span style="color:#fb7185">Vous subissez ${damage} dégâts → PV restants ${player.hp}/${player.maxHp}</span>`);
-  }
-  updatePlayerUI();
-
-  if(player.hp <= 0){
-    log('<strong>Vous êtes vaincu... partie terminée.</strong>');
-    endCombat(false, true);
-    return;
-  }
-
-  // back to player
-  turn = 'player';
-  log('<em>À vous de jouer.</em>');
-}
-
-// Resolution of combat
-function endCombat(victory, fled=false){
-  combatOngoing=false;
-  currentEnemy=null;
-  updateEnemyUI();
-  elem('initResult').innerHTML='';
-  elem('battleState').innerText = 'Aucun combat en cours';
-  if(victory){
-    // reward already given at kill. Maybe drop items - omitted
-  } else if(fled){
-    log('<em>Vous avez été défait — réinitialisez ou soignez-vous pour continuer.</em>');
-  } else {
-    log('<em>Combat terminé (fuite ou autre).</em>');
-  }
-  // save history to full log
-  const full = elem('fullLog');
-  full.prepend(document.createElement('div')).innerHTML = `<strong>Combat terminé</strong> — ${victory ? 'victoire' : 'défaite/fuite'}`;
-  updatePlayerUI();
-}
-
-// XP / level-up
-function grantXP(amount){
-  player.xp += amount;
-  updatePlayerUI();
-  // check level up
-  const nextThreshold = nextLevelThreshold(player.level);
-  if(player.xp >= nextThreshold){
-    // level up
-    player.level += 1;
-    player.maxHp += 5; // simple hp growth
-    player.hp = player.maxHp; // heal on level
-    log(`<strong>Montée au niveau ${player.level} ! Vous récupérez vos PV (soin complet).</strong>`);
-    showLevelUpChoices();
-    updatePlayerUI();
-  }
-}
-
-// Show level-up choices
-function showLevelUpChoices(){
-  const area = elem('levelUpArea'); area.innerHTML='';
-  const box = document.createElement('div'); box.style.padding='8px'; box.style.background='rgba(255,255,255,0.02)'; box.style.borderRadius='8px';
-  box.innerHTML = `<div class="big">Choisissez un dé à ajouter</div>
-    <div style="margin-top:8px">À chaque montée, vous pouvez ajouter <strong>+1</strong> à l'une des catégories :</div>
-    <div style="margin-top:8px" class="controls">
-      <button id="chPhys">+1 dé action Physique (d6)</button>
-      <button id="chMent">+1 dé action Mentale (d6)</button>
-      <button id="chPRes">+1 dé résistance Physique (d6)</button>
-      <button id="chBonus">+1 dé bonus (d4)</button>
-    </div>
-    <div style="margin-top:6px"><small>Le choix s'applique immédiatement.</small></div>`;
-  area.appendChild(box);
-  elem('chPhys').onclick = ()=>{ player.physAction += 1; area.innerHTML=''; log('Vous ajoutez +1 dé action physique.'); updatePlayerUI(); }
-  elem('chMent').onclick = ()=>{ player.mentAction += 1; area.innerHTML=''; log('Vous ajoutez +1 dé action mentale.'); updatePlayerUI(); }
-  elem('chPRes').onclick = ()=>{ player.physRes += 1; area.innerHTML=''; log('Vous ajoutez +1 dé résistance physique.'); updatePlayerUI(); }
-  elem('chBonus').onclick = ()=>{ player.bonus += 1; area.innerHTML=''; log('Vous ajoutez +1 dé bonus (d4).'); updatePlayerUI(); }
-}
-
-// Random event generator (résolution donne XP)
-function randomEvent(){
-  // create an event: challenge type phys/ment, difficulty target
-  const type = Math.random() < 0.5 ? 'phys' : 'ment';
-  const difficulty = 4 + Math.floor(Math.random()*6); // target value between 4 and 9
-  log(`<em>Événement aléatoire : défi ${type}. Objectif : obtenir au moins ${difficulty} (action + bonus).</em>`);
-  // allow player to click to resolve: we'll roll action dice and bonus
-  // we'll auto-resolve immediately for simplicity
-  const actionCount = (type==='phys') ? player.physAction : player.mentAction;
-  const actionRolls = rollDice(actionCount,6);
-  const bonusRolls = player.bonus>0 ? rollDice(player.bonus,4) : [];
-  const total = actionRolls.reduce((a,b)=>a+b,0)+bonusRolls.reduce((a,b)=>a+b,0);
-  showDice([{type:type, values:actionRolls},{type:'bonus', values:bonusRolls}]);
-  log(`Résultat événement : action [${actionRolls.join(', ')}] + bonus [${bonusRolls.join(', ')}] = ${total}`);
-  if(total >= difficulty){
-    const xpGain = 50 + difficulty*5;
-    log(`<strong>Succès ! +${xpGain} XP.</strong>`);
-    grantXP(xpGain);
-  } else {
-    const hpLoss = Math.max(1, Math.round((difficulty - total)/2));
-    player.hp = Math.max(0, player.hp - hpLoss);
-    log(`<em>Échec. Vous perdez ${hpLoss} PV (PV restants ${player.hp}/${player.maxHp}).</em>`);
-    updatePlayerUI();
-    if(player.hp<=0){
-      log('<strong>Vous êtes mort suite à l\'échec de l\'événement.</strong>');
+    function log(msg) {
+      const div = document.getElementById('log');
+      const logEntry = document.createElement('div');
+      logEntry.textContent = msg;
+      div.appendChild(logEntry);
+      div.scrollTop = div.scrollHeight;
     }
-  }
-}
 
-// Initiative decider: 1d6 each, highest starts; tie -> reroll
-function decideInitiative(){
-  if(!currentEnemy) { log('Pas d\'ennemi pour déterminer initiative.'); return; }
-  let a,b;
-  do{
-    a = rollDice(1,6)[0];
-    b = rollDice(1,6)[0];
-    elem('initResult').innerHTML = `Vous lancez <strong>${a}</strong> — Ennemi lance <strong>${b}</strong>`;
-    if(a===b){
-      log('Égalité d\'initiative, relance...');
+    function logDice(rolls, cssClass) {
+      const div = document.getElementById('log');
+      const diceDiv = document.createElement('div');
+      rolls.forEach(r => {
+        const span = document.createElement('span');
+        span.className = `dice ${cssClass}`;
+        span.textContent = r;
+        diceDiv.appendChild(span);
+      });
+      div.appendChild(diceDiv);
+      div.scrollTop = div.scrollHeight;
     }
-  } while(a===b);
-  if(a > b){ turn='player'; log('Vous commencez (initiative).'); }
-  else { turn='enemy'; log('L\'ennemi commence.'); }
-  // if enemy starts, run enemy turn after a short delay
-  if(turn==='enemy') setTimeout(enemyTurn, 800);
-}
 
-// UI actions
-elem('newEnemyBtn').onclick = ()=>{
-  if(combatOngoing){ log('Un combat est déjà en cours.'); return; }
-  currentEnemy = generateEnemy(player.level);
-  combatOngoing = true;
-  updateEnemyUI();
-  log(`<strong>Un ${currentEnemy.name} apparaît !</strong>`);
-  // decide initiative automatically
-  decideInitiative();
-};
+    let player;
+    let enemy;
 
-elem('attackPhysBtn').onclick = ()=>{ if(!combatOngoing){ log('Pas de cible. Générez un ennemi d\'abord.'); return; } if(turn!=='player'){ log('Attendez votre tour.'); return; } playerAttack('phys'); };
-elem('attackMentBtn').onclick = ()=>{ if(!combatOngoing){ log('Pas de cible.'); return; } if(turn!=='player'){ log('Attendez votre tour.'); return; } playerAttack('ment'); };
-elem('useItemBtn').onclick = ()=>{ log('Vous passez votre tour (défense passive).'); turn='enemy'; setTimeout(enemyTurn,600); };
+    function startGame() {
+      document.getElementById('log').innerHTML = '';
+      player = new Character('Héros');
+      spawnEnemy();
+      log('La partie commence !');
+    }
 
-elem('decideInitiativeBtn').onclick = decideInitiative;
-elem('randomEventBtn').onclick = ()=>{ randomEvent(); };
-elem('healBtn').onclick = ()=>{ player.hp = Math.min(player.maxHp, player.hp + 5); log('Vous vous soignez de +5 PV.'); updatePlayerUI(); };
+    function spawnEnemy() {
+      enemy = new Character('Ennemi', player.level);
+      enemy.hp = 6 + player.level*2;
+      log(`Un ennemi de niveau ${enemy.level} apparaît avec ${enemy.hp} PV !`);
+    }
 
-elem('resetBtn').onclick = ()=>{ if(confirm('Réinitialiser le personnage et tout l\'état du jeu ?')) fullReset(); };
+    function nextTurn() {
+      if(!player || !enemy) return;
+      if(player.hp<=0) { log('Game Over'); return; }
+      if(enemy.hp<=0) {
+        log("L'ennemi est vaincu !");
+        player.gainExp(5);
+        spawnEnemy();
+        return;
+      }
 
-function fullReset(){
-  player = {
-    name: "Personne lambda", level:1, hp:10, maxHp:10, xp:0,
-    physAction:1, mentAction:1, physRes:1, mentRes:1, bonus:1
-  };
-  currentEnemy = null; combatOngoing=false; turn=null;
-  elem('diceDisplay').innerHTML=''; elem('log').innerHTML=''; elem('fullLog').innerHTML='';
-  elem('levelUpArea').innerHTML='';
-  updatePlayerUI(); updateEnemyUI();
-  log('<em>État réinitialisé.</em>');
-}
-
-// Granting initial UI
-updatePlayerUI();
-updateEnemyUI();
-log('<em>Jeu prêt. Génère un ennemi pour commencer le combat ou lance un événement aléatoire.</em>');
-</script>
+      const pInit = Math.floor(Math.random()*6)+1;
+      const eInit = Math.floor(Math.random()*6)+1;
+      log(`Initiative: joueur ${pInit} vs ennemi ${eInit}`);
+      if(pInit >= eInit) {
+        const dmg = player.rollAction('phys');
+        enemy.takeDamage(dmg, 'phys');
+        if(enemy.hp>0) {
+          const edmg = enemy.rollAction('phys');
+          player.takeDamage(edmg, 'phys');
+        }
+      } else {
+        const edmg = enemy.rollAction('phys');
+        player.takeDamage(edmg, 'phys');
+        if(player.hp>0) {
+          const dmg = player.rollAction('phys');
+          enemy.takeDamage(dmg, 'phys');
+        }
+      }
+    }
+  </script>
 </body>
 </html>
