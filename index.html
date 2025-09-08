@@ -15,15 +15,13 @@ button{padding:12px 16px;margin:5px;border-radius:8px;font-size:16px;min-width:1
 .bonus{background:#fff;border:1px solid #000;color:#000;}
 #exp-bar{width:100%;height:20px;background:#ccc;margin-top:5px;border-radius:5px;overflow:hidden;}
 #exp-fill{height:100%;width:0%;background:#0a0;}
+#eventButtons{margin:10px 0;}
 </style>
 </head>
 <body>
 <h1>Mini Jeu de Rôle</h1>
 <canvas id="gameCanvas" width="400" height="300"></canvas>
-<div>
-  <button id="btnPhys">Dé Physique</button>
-  <button id="btnMent">Dé Mentale</button>
-</div>
+<div id="eventButtons"></div>
 <div id="exp-bar"><div id="exp-fill"></div></div>
 <div class="log" id="log"></div>
 
@@ -40,7 +38,7 @@ const REGISTRES = {
 4:{levelUpPV:'1D6 PV max ajouté à chaque niveau, PV restaurés'},
 5:{enemyDice:'2 dé par niveau répartis aléatoirement entre action et résistance'},
 6:{turns:'Tour du joueur puis ennemis, initiative 1D6'},
-7:{interface:{canvasColor:'#3399ff',playerColor:'green',enemyColor:'red',mobile:true}},
+7:{interface:{canvasColor:'#3399ff',playerColor:'green',enemyColor:'red',mobile:true,eventButtons:true}},
 9:{types:['Combat','Épreuve','Feu de camp']},
 "Feu de camp":{rest:{D6:true,D20Check:true,failCombat:true}}
 };
@@ -79,13 +77,23 @@ function drawCharacter(char,x,y,shape,color,hp,hpMax){
   ctx.fillStyle='red';ctx.fillRect(x-20,y+25,40*(hp/hpMax),5);
 }
 
+// -------------------- ÉVÉNEMENTS --------------------
+function showEventButtons(){
+  const div=document.getElementById('eventButtons'); div.innerHTML='';
+  if(currentEvent==='Combat' || currentEvent==='Épreuve'){
+    const b1=document.createElement('button');b1.innerText='Dé Physique';b1.onclick=()=>handleAction('phys');div.appendChild(b1);
+    const b2=document.createElement('button');b2.innerText='Dé Mentale';b2.onclick=()=>handleAction('ment');div.appendChild(b2);
+  } else if(currentEvent==='Feu de camp'){
+    const b1=document.createElement('button');b1.innerText='Se Reposer';b1.onclick=()=>restCamp();div.appendChild(b1);
+    const b2=document.createElement('button');b2.innerText='Partir';b2.onclick=()=>chooseEvent();div.appendChild(b2);
+  }
+}
+
 // -------------------- DÉS --------------------
-document.getElementById('btnPhys').onclick=()=>handleAction('phys');
-document.getElementById('btnMent').onclick=()=>handleAction('ment');
 function handleAction(type){
   if(currentEvent==='Combat')combatTurn(type);
   if(currentEvent==='Épreuve')trial(type);
-  if(currentEvent==='Feu de camp')restCamp();
+  drawScene();showEventButtons();
 }
 
 // -------------------- POPUP DÉ --------------------
@@ -100,12 +108,16 @@ function chooseDice(character){
 
 // -------------------- ÉVÉNEMENTS --------------------
 function chooseEvent(){
-  let choice=parseInt(prompt("Choisissez un événement : 0=Combat,1=Épreuve,2=Feu de camp"));
-  currentEvent=REGISTRES[9].types[choice]; log(`Événement : ${currentEvent}`);
-  if(currentEvent==='Combat')startCombat();
-  if(currentEvent==='Épreuve')startTrial();
-  if(currentEvent==='Feu de camp')startCamp();
-  drawScene();
+  let div=document.getElementById('eventButtons'); div.innerHTML='';
+  ['Combat','Épreuve','Feu de camp'].forEach((ev,i)=>{
+    const b=document.createElement('button');b.innerText=ev;b.onclick=()=>{
+      currentEvent=ev; log(`Événement : ${currentEvent}`);
+      if(currentEvent==='Combat')startCombat();
+      if(currentEvent==='Épreuve')startTrial();
+      if(currentEvent==='Feu de camp')startCamp();
+      drawScene(); showEventButtons();
+    }; div.appendChild(b);
+  });
 }
 
 // -------------------- COMBAT --------------------
@@ -121,7 +133,6 @@ function combatTurn(type){
   const pInit=rand(6), eInit=rand(6); log(`Initiative: Joueur ${pInit} vs Ennemi ${eInit}`);
   if(pInit>=eInit){enemy.takeDamage(player.roll(type));if(enemy.hp>0)player.takeDamage(enemy.roll('phys'));}
   else{player.takeDamage(enemy.roll('phys'));if(player.hp>0)enemy.takeDamage(player.roll(type));}
-  drawScene();
 }
 
 // -------------------- ÉPREUVE --------------------
@@ -138,7 +149,6 @@ function restCamp(){
   if(player.firstRest){const heal=rand(6);player.hp=Math.min(player.hpMax,player.hp+heal);log(`Premier repos: +${heal} PV (${player.hp}/${player.hpMax})`);player.firstRest=false;}
   else{const check=rand(20);if(check>5){const heal=rand(6);player.hp=Math.min(player.hpMax,player.hp+heal);log(`Repos réussi: +${heal} PV (${player.hp}/${player.hpMax})`);}
   else{log(`Repos échoué ! Vous quittez le camp et combat commence.`);currentEvent='Combat';startCombat();}}
-  drawScene();
 }
 
 // -------------------- DEMARRAGE --------------------
