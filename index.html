@@ -16,6 +16,9 @@ button{padding:12px 16px;margin:5px;border-radius:8px;font-size:16px;min-width:1
 #exp-bar{width:100%;height:20px;background:#ccc;margin-top:5px;border-radius:5px;overflow:hidden;}
 #exp-fill{height:100%;width:0%;background:#0a0;}
 #eventButtons{margin:10px 0;}
+#popup{display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+background:#fff;border:2px solid #000;padding:20px;border-radius:10px;z-index:100;width:80%;max-width:300px;}
+#popupButtons button{min-width:80px;}
 </style>
 </head>
 <body>
@@ -25,12 +28,37 @@ button{padding:12px 16px;margin:5px;border-radius:8px;font-size:16px;min-width:1
 <div id="exp-bar"><div id="exp-fill"></div></div>
 <div class="log" id="log"></div>
 
+<!-- Pop-up visuelle -->
+<div id="popup">
+  <div id="popupText"></div>
+  <div id="popupButtons" style="margin-top:10px;"></div>
+</div>
+
 <script>
 // -------------------- UTIL --------------------
 function rand(s){return Math.floor(Math.random()*s)+1;}
 function log(msg){const d=document.getElementById('log');d.innerHTML+=`<div>${msg}</div>`;d.scrollTop=d.scrollHeight;}
 function logDice(rolls,css){const d=document.getElementById('log');d.innerHTML+=`<div>${rolls.map(r=>`<span class="dice ${css}">${r}</span>`).join(' ')}</div>`;}
 function updateExpBar(exp,maxExp){document.getElementById('exp-fill').style.width=`${Math.min(100,exp/maxExp*100)}%`;}
+
+// -------------------- POP-UP VISUEL --------------------
+function showPopup(text,buttons){
+  const popup=document.getElementById('popup');
+  const popupText=document.getElementById('popupText');
+  const popupButtons=document.getElementById('popupButtons');
+  popupText.innerText=text;
+  popupButtons.innerHTML='';
+  buttons.forEach(b=>{
+    const btn=document.createElement('button');
+    btn.innerText=b.text;
+    btn.onclick=()=>{
+      b.action();
+      popup.style.display='none';
+    };
+    popupButtons.appendChild(btn);
+  });
+  popup.style.display='block';
+}
 
 // -------------------- REGISTRES --------------------
 const REGISTRES = {
@@ -98,26 +126,24 @@ function handleAction(type){
 
 // -------------------- POPUP DÉ --------------------
 function chooseDice(character){
-  let choice=parseInt(prompt("Choisissez un dé à ajouter : 0=Physique,1=Mental,2=Bonus,3=Résistance"));
-  if(choice===0)character.physDice.push(6);
-  if(choice===1)character.mentDice.push(6);
-  if(choice===2)character.bonusDice.push(4);
-  if(choice===3)character.resPhys.push(6);
-  log(`${character.name} ajoute un dé ${['physique','mental','bonus','résistance'][choice]}`);
+  showPopup("Choisissez un dé à ajouter :",[
+    {text:'Physique', action:()=>{character.physDice.push(6); log('Dé physique ajouté');}},
+    {text:'Mentale', action:()=>{character.mentDice.push(6); log('Dé mentale ajouté');}},
+    {text:'Bonus', action:()=>{character.bonusDice.push(4); log('Dé bonus ajouté');}},
+    {text:'Résistance', action:()=>{character.resPhys.push(6); log('Dé résistance ajouté');}}
+  ]);
 }
 
-// -------------------- ÉVÉNEMENTS --------------------
+// -------------------- CHOIX ÉVÉNEMENT --------------------
 function chooseEvent(){
-  let div=document.getElementById('eventButtons'); div.innerHTML='';
-  ['Combat','Épreuve','Feu de camp'].forEach((ev,i)=>{
-    const b=document.createElement('button');b.innerText=ev;b.onclick=()=>{
-      currentEvent=ev; log(`Événement : ${currentEvent}`);
-      if(currentEvent==='Combat')startCombat();
-      if(currentEvent==='Épreuve')startTrial();
-      if(currentEvent==='Feu de camp')startCamp();
-      drawScene(); showEventButtons();
-    }; div.appendChild(b);
-  });
+  currentEvent=null;
+  showPopup("Choisissez un événement :",REGISTRES[9].types.map(ev=>({text:ev,action:()=>{
+    currentEvent=ev; log(`Événement : ${currentEvent}`);
+    if(currentEvent==='Combat')startCombat();
+    if(currentEvent==='Épreuve')startTrial();
+    if(currentEvent==='Feu de camp')startCamp();
+    drawScene(); showEventButtons();
+  }})));
 }
 
 // -------------------- COMBAT --------------------
