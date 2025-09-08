@@ -1,26 +1,24 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mini JDR Navigateur</title>
-  <style>
-    body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 20px; }
-    h1 { text-align: center; }
-    canvas { border: 1px solid #000; display: block; margin: 10px auto; background: #3399ff; }
-    #buttons { text-align: center; margin: 10px; }
-    button { padding: 10px 15px; margin: 5px; border-radius: 8px; font-size: 16px; }
-    .log { background: #fff; border: 1px solid #ccc; padding: 10px; height: 250px; overflow-y: auto; margin-top: 10px; }
-    .dice { display: inline-block; margin: 2px; padding: 5px 10px; border-radius: 4px; font-weight: bold; }
-    .phys { background: #fdd; border: 1px solid #f00; color: #900; }
-    .ment { background: #ddf; border: 1px solid #00f; color: #009; }
-    .bonus { background: #fff; border: 1px solid #000; color: #000; }
-    #exp-bar { width: 100%; height: 20px; background: #ccc; margin-top: 5px; border-radius: 5px; overflow: hidden; }
-    #exp-fill { height: 100%; width: 0%; background: #0a0; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mini JDR Navigateur</title>
+<style>
+body{font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;text-align:center;}
+canvas{border:1px solid #000; background:#3399ff; display:block;margin:10px auto;}
+button{padding:10px 15px;margin:5px;border-radius:8px;font-size:16px;}
+.log{background:#fff;border:1px solid #ccc;padding:10px;height:250px;overflow-y:auto;margin-top:10px;text-align:left;}
+.dice{display:inline-block;margin:2px;padding:5px 10px;border-radius:4px;font-weight:bold;}
+.phys{background:#fdd;border:1px solid #f00;color:#900;}
+.ment{background:#ddf;border:1px solid #00f;color:#009;}
+.bonus{background:#fff;border:1px solid #000;color:#000;}
+#exp-bar{width:100%;height:20px;background:#ccc;margin-top:5px;border-radius:5px;overflow:hidden;}
+#exp-fill{height:100%;width:0%;background:#0a0;}
+</style>
 </head>
 <body>
-<h1>Mini Jeu de Rôle avec Dés</h1>
+<h1>Mini JDR avec Dés</h1>
 <canvas id="gameCanvas" width="400" height="300"></canvas>
 <div id="buttons">
   <button id="btnPhys">Dé Physique</button>
@@ -30,288 +28,119 @@
 <div class="log" id="log"></div>
 
 <script>
-/* -------------------- REGISTRES -------------------- */
+// -------------------- REGISTRES --------------------
 const REGISTRES = {
-  1: { // Personnage et niveau de départ
-    PV: 10,
-    physDice: [6],
-    mentDice: [6],
-    bonusDice: [4],
-    resPhys: [6],
-    resMent: [6],
-    exp: 0,
-    nextLevelExp: 10
-  },
-  2: { // Lancer de dés
-    colors: { phys: 'phys', ment: 'ment', bonus: 'bonus' }
-  },
-  3: { // PV et résistance
-  },
-  4: { // Expérience et gain de niveau
-  },
-  5: { // Ennemis
-  },
-  6: { // Tours et initiative
-  },
-  7: { // Interface
-    defaultCanvasColor: '#3399ff',
-    campCanvasColor: '#002244'
-  },
-  8: { // Actions du joueur
-  },
-  9: { // Événements
-    types: ['Combat','Épreuve','Feu de camp']
-  },
-  10: { // Feu de camp
-  }
+1:{PV:10,physDice:[6],mentDice:[6],bonusDice:[4],resPhys:[6],resMent:[6],exp:0,nextLevelExp:10},
+7:{defaultCanvasColor:'#3399ff',campCanvasColor:'#002244'},
+9:{types:['Combat','Épreuve','Feu de camp']}
 };
 
-/* -------------------- CLASSES -------------------- */
-class Character {
-  constructor(name, level=1, isEnemy=false) {
-    this.name = name;
-    this.level = level;
-    this.isEnemy = isEnemy;
-    this.hpMax = REGISTRES[1].PV;
-    this.hp = this.hpMax;
-    this.physDice = [...REGISTRES[1].physDice];
-    this.mentDice = [...REGISTRES[1].mentDice];
-    this.bonusDice = [...REGISTRES[1].bonusDice];
-    this.resPhys = [...REGISTRES[1].resPhys];
-    this.resMent = [...REGISTRES[1].resMent];
-    this.exp = 0;
-    this.nextLevelExp = REGISTRES[1].nextLevelExp;
-    this.firstRest = true;
-  }
+// -------------------- UTIL --------------------
+function rand(s){return Math.floor(Math.random()*s)+1;}
+function log(msg){const d=document.getElementById('log');d.innerHTML+=`<div>${msg}</div>`;d.scrollTop=d.scrollHeight;}
+function logDice(rolls,css){const d=document.getElementById('log');d.innerHTML+=`<div>${rolls.map(r=>`<span class="dice ${css}">${r}</span>`).join(' ')}</div>`;}
+function updateExpBar(exp,maxExp){document.getElementById('exp-fill').style.width=`${Math.min(100,exp/maxExp*100)}%`;}
 
-  rollDice(diceArr, cssClass) {
-    const rolls = diceArr.map(s => Math.floor(Math.random()*s)+1);
-    logDice(rolls, cssClass);
-    return rolls.reduce((a,b)=>a+b,0);
+// -------------------- CLASSE PERSONNAGE --------------------
+class Character{
+  constructor(name,level=1,isEnemy=false){
+    this.name=name;this.level=level;this.isEnemy=isEnemy;
+    this.hpMax=REGISTRES[1].PV;this.hp=this.hpMax;
+    this.physDice=[...REGISTRES[1].physDice];this.mentDice=[...REGISTRES[1].mentDice];
+    this.bonusDice=[...REGISTRES[1].bonusDice];
+    this.resPhys=[...REGISTRES[1].resPhys];this.resMent=[...REGISTRES[1].resMent];
+    this.exp=0;this.nextLevelExp=REGISTRES[1].nextLevelExp;
+    this.firstRest=true;
   }
-
-  rollAction(type) {
-    let base = 0;
-    if(type==='phys') base = this.rollDice(this.physDice,'phys');
-    if(type==='ment') base = this.rollDice(this.mentDice,'ment');
-    const bonus = this.rollDice(this.bonusDice,'bonus');
-    return base+bonus;
-  }
-
-  rollResistance(type) {
-    if(type==='phys') return this.rollDice(this.resPhys,'phys');
-    else return this.rollDice(this.resMent,'ment');
-  }
-
-  takeDamage(dmg,type) {
-    const resist = this.rollResistance(type);
-    if(resist>=dmg){
-      log(`${this.name} bloque l'attaque (${resist} >= ${dmg}) !`);
-      return;
-    }
-    const taken = dmg-resist;
-    this.hp -= taken;
-    if(this.hp<0) this.hp=0;
-    log(`${this.name} subit ${taken} dégâts (${dmg}-${resist}), PV restants: ${this.hp}`);
-  }
-
-  gainExp(amount) {
-    this.exp += amount;
-    log(`${this.name} gagne ${amount} EXP (${this.exp}/${this.nextLevelExp})`);
-    updateExpBar(this.exp,this.nextLevelExp);
-    if(this.exp>=this.nextLevelExp) this.levelUp();
-  }
-
-  levelUp() {
-    this.level++;
-    this.exp = 0;
-    this.nextLevelExp +=10;
-    // PV max + 1D6
-    const hpGain = Math.floor(Math.random()*6)+1;
-    this.hpMax += hpGain;
-    this.hp = this.hpMax;
-    log(`${this.name} passe niveau ${this.level} ! PV max augmenté de ${hpGain} à ${this.hpMax}`);
-    // choix de dé via popup
-    setTimeout(()=>{chooseDice(this);},100);
-  }
+  rollDice(arr,css){const r=arr.map(s=>rand(s));logDice(r,css);return r.reduce((a,b)=>a+b,0);}
+  roll(type,isAction=true){return this.rollDice(isAction?(type==='phys'?this.physDice:this.mentDice):(type==='phys'?this.resPhys:this.resMent),isAction?(type==='phys'?'phys':'ment'):(type==='phys'?'phys':'ment'))+(isAction?this.rollDice(this.bonusDice,'bonus'):0);}
+  takeDamage(dmg,type){const r=this.roll(type,false);if(r>=dmg){log(`${this.name} bloque (${r} >= ${dmg}) !`);return;}const t=dmg-r;this.hp-=t;if(this.hp<0)this.hp=0;log(`${this.name} subit ${t} dégâts, PV: ${this.hp}/${this.hpMax}`);}
+  gainExp(amount){this.exp+=amount;log(`${this.name} gagne ${amount} EXP (${this.exp}/${this.nextLevelExp})`);updateExpBar(this.exp,this.nextLevelExp);if(this.exp>=this.nextLevelExp)this.levelUp();}
+  levelUp(){this.level++;this.exp=0;this.nextLevelExp+=10;const hpGain=rand(6);this.hpMax+=hpGain;this.hp=this.hpMax;log(`${this.name} passe niveau ${this.level}, PV max +${hpGain}=${this.hpMax}`);setTimeout(()=>chooseDice(this),50);}
 }
 
-/* -------------------- VARIABLES -------------------- */
-let player;
-let enemy;
-let canvas, ctx;
-let currentEvent = null;
+// -------------------- INIT --------------------
+let player,enemy,canvas,ctx,currentEvent=null;
+canvas=document.getElementById('gameCanvas');ctx=canvas.getContext('2d');
 
-/* -------------------- LOG -------------------- */
-function log(msg){
-  const div = document.getElementById('log');
-  div.innerHTML += `<div>${msg}</div>`;
-  div.scrollTop = div.scrollHeight;
-}
-
-function logDice(rolls,cssClass){
-  const div = document.getElementById('log');
-  const html = rolls.map(r=>`<span class="dice ${cssClass}">${r}</span>`).join(' ');
-  div.innerHTML+=`<div>${html}</div>`;
-}
-
-/* -------------------- INTERFACE -------------------- */
-function updateExpBar(exp,maxExp){
-  const fill = document.getElementById('exp-fill');
-  fill.style.width = `${Math.min(100,exp/maxExp*100)}%`;
-}
-
-function drawScene(){
-  ctx.fillStyle = currentEvent==='Feu de camp'?REGISTRES[7].campCanvasColor:REGISTRES[7].defaultCanvasColor;
-  ctx.fillRect(0,0,canvas.width,canvas.height);
-  // Dessiner joueur
-  ctx.fillStyle='green';
-  ctx.beginPath();
-  ctx.moveTo(50,150-20);
-  ctx.lineTo(30,190-20);
-  ctx.lineTo(70,190-20);
-  ctx.closePath();
-  ctx.fill();
-  // PV joueur
-  ctx.fillStyle='red';
-  ctx.fillRect(30,200-20,40*(player.hp/player.hpMax),5);
-  // Si feu de camp afficher icône flamme
-  if(currentEvent==='Feu de camp'){
-    ctx.fillStyle='orange';
-    ctx.fillRect(100,160,20,40); // flamme simplifiée
-  }
-}
-
-/* -------------------- INITIALISATION -------------------- */
 function startGame(){
-  document.getElementById('log').innerHTML='';
-  player = new Character('Héros');
-  canvas = document.getElementById('gameCanvas');
-  ctx = canvas.getContext('2d');
-  drawScene();
-  chooseEvent();
+  document.getElementById('log').innerHTML='';player=new Character('Héros');drawScene();chooseEvent();
 }
 
-/* -------------------- CHOIX DÉ -------------------- */
+// -------------------- DESSIN --------------------
+function drawScene(){
+  ctx.fillStyle=currentEvent==='Feu de camp'?REGISTRES[7].campCanvasColor:REGISTRES[7].defaultCanvasColor;
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  drawCharacter(player,50,150,'triangle','green',player.hp,player.hpMax);
+  if(enemy && currentEvent==='Combat')drawCharacter(enemy,300,160,'circle','red',enemy.hp,enemy.hpMax);
+  if(currentEvent==='Feu de camp'){ctx.fillStyle='orange';ctx.fillRect(100,160,20,40);}
+}
+function drawCharacter(char,x,y,shape,color,hp,hpMax){
+  ctx.fillStyle=color;
+  if(shape==='triangle'){ctx.beginPath();ctx.moveTo(x,y-20);ctx.lineTo(x-20,y+20);ctx.lineTo(x+20,y+20);ctx.closePath();ctx.fill();}
+  else ctx.beginPath(),ctx.arc(x,y,20,0,2*Math.PI),ctx.fill();
+  ctx.fillStyle='red';ctx.fillRect(x-20,y+25,40*(hp/hpMax),5);
+}
+
+// -------------------- DÉS --------------------
+document.getElementById('btnPhys').onclick=()=>handleAction('phys');
+document.getElementById('btnMent').onclick=()=>handleAction('ment');
+function handleAction(type){
+  if(currentEvent==='Combat')combatTurn(type);
+  if(currentEvent==='Épreuve')trial(type);
+  if(currentEvent==='Feu de camp')restCamp();
+}
+
+// -------------------- POPUP DÉ --------------------
 function chooseDice(character){
-  let choice = prompt("Choisissez un dé à ajouter : 0=Physique,1=Mental,2=Bonus,3=Résistance");
-  choice=parseInt(choice);
-  if(choice===0) character.physDice.push(6);
-  if(choice===1) character.mentDice.push(6);
-  if(choice===2) character.bonusDice.push(4);
-  if(choice===3) character.resPhys.push(6);
+  let choice=parseInt(prompt("Choisissez un dé à ajouter : 0=Physique,1=Mental,2=Bonus,3=Résistance"));
+  if(choice===0)character.physDice.push(6);
+  if(choice===1)character.mentDice.push(6);
+  if(choice===2)character.bonusDice.push(4);
+  if(choice===3)character.resPhys.push(6);
   log(`${character.name} ajoute un dé ${['physique','mental','bonus','résistance'][choice]}`);
 }
 
-/* -------------------- ÉVÉNEMENTS -------------------- */
+// -------------------- ÉVÉNEMENTS --------------------
 function chooseEvent(){
-  let choice = prompt("Choisissez un événement : 0=Combat,1=Épreuve,2=Feu de camp");
-  choice=parseInt(choice);
-  currentEvent = REGISTRES[9].types[choice];
-  log(`Événement choisi : ${currentEvent}`);
-  if(currentEvent==='Combat') startCombat();
-  if(currentEvent==='Épreuve') startTrial();
-  if(currentEvent==='Feu de camp') startCamp();
+  let choice=parseInt(prompt("Choisissez un événement : 0=Combat,1=Épreuve,2=Feu de camp"));
+  currentEvent=REGISTRES[9].types[choice]; log(`Événement : ${currentEvent}`);
+  if(currentEvent==='Combat')startCombat();
+  if(currentEvent==='Épreuve')startTrial();
+  if(currentEvent==='Feu de camp')startCamp();
   drawScene();
 }
 
-/* -------------------- COMBAT -------------------- */
+// -------------------- COMBAT --------------------
 function spawnEnemy(){
-  enemy = new Character('Ennemi',player.level,true);
-  // Ajout 2 dés par niveau répartis aléatoirement
-  for(let i=0;i<2*enemy.level;i++){
-    const r=Math.floor(Math.random()*4);
-    if(r===0) enemy.physDice.push(6);
-    if(r===1) enemy.mentDice.push(6);
-    if(r===2) enemy.resPhys.push(6);
-    if(r===3) enemy.resMent.push(6);
-  }
-  enemy.hp = 6 + player.level*2;
-  log(`Un ennemi de niveau ${enemy.level} apparaît avec ${enemy.hp} PV !`);
+  enemy=new Character('Ennemi',player.level,true);
+  for(let i=0;i<2*enemy.level;i++){const r=rand(4)-1;if(r===0)enemy.physDice.push(6);if(r===1)enemy.mentDice.push(6);if(r===2)enemy.resPhys.push(6);if(r===3)enemy.resMent.push(6);}
+  enemy.hp=6+player.level*2; log(`Ennemi niveau ${enemy.level} apparaît, PV:${enemy.hp}`);
 }
-
-function startCombat(){
-  spawnEnemy();
-  document.getElementById('btnPhys').onclick = ()=>combatTurn('phys');
-  document.getElementById('btnMent').onclick = ()=>combatTurn('ment');
-}
-
+function startCombat(){spawnEnemy();}
 function combatTurn(type){
-  if(player.hp<=0){log('Game Over'); return;}
-  if(enemy.hp<=0){
-    log("L'ennemi est vaincu !");
-    player.gainExp(5);
-    spawnEnemy();
-    return;
-  }
-  // Initiative
-  const pInit = Math.floor(Math.random()*6)+1;
-  const eInit = Math.floor(Math.random()*6)+1;
-  log(`Initiative : joueur ${pInit} vs ennemi ${eInit}`);
-  if(pInit>=eInit){
-    const dmg = player.rollAction(type);
-    enemy.takeDamage(dmg,'phys');
-    if(enemy.hp>0){
-      const edmg = enemy.rollAction('phys');
-      player.takeDamage(edmg,'phys');
-    }
-  } else {
-    const edmg = enemy.rollAction('phys');
-    player.takeDamage(edmg,'phys');
-    if(player.hp>0){
-      const dmg = player.rollAction(type);
-      enemy.takeDamage(dmg,'phys');
-    }
-  }
+  if(player.hp<=0){log('Game Over');return;}
+  if(enemy.hp<=0){log("Ennemi vaincu !");player.gainExp(5);spawnEnemy();drawScene();return;}
+  const pInit=rand(6), eInit=rand(6); log(`Initiative: joueur ${pInit} vs ennemi ${eInit}`);
+  if(pInit>=eInit){enemy.takeDamage(player.roll(type)); if(enemy.hp>0)player.takeDamage(enemy.roll('phys'));} 
+  else{player.takeDamage(enemy.roll('phys')); if(player.hp>0)enemy.takeDamage(player.roll(type));}
   drawScene();
 }
 
-/* -------------------- ÉPREUVES -------------------- */
-function startTrial(){
-  const type = Math.random()<0.5?'phys':'ment';
-  log(`Épreuve ${type}`);
-  let res = type==='phys'?player.rollAction('phys'):player.rollAction('ment');
-  if(res>=4){ // seuil simple
-    log("Épreuve réussie !");
-    player.gainExp(5);
-  } else {
-    log("Épreuve échouée !");
-  }
-  chooseEvent();
-}
+// -------------------- ÉPREUVES --------------------
+function startTrial(){log("Épreuve commencée");}
+function trial(type){const r=rand(6); if(r>=3){log(`Épreuve réussie ! +5 EXP`);player.gainExp(5);} else log("Échec de l'épreuve.");chooseEvent();drawScene();}
 
-/* -------------------- FEU DE CAMP -------------------- */
-function startCamp(){
-  player.firstRest = true;
-  document.getElementById('btnPhys').innerText='Se reposer';
-  document.getElementById('btnMent').innerText='Partir';
-  document.getElementById('btnPhys').onclick=restAction;
-  document.getElementById('btnMent').onclick=chooseEvent;
-}
-
-function restAction(){
-  if(player.firstRest){
-    const gain = Math.floor(Math.random()*6)+1;
-    player.hp = Math.min(player.hp+gain,player.hpMax);
-    log(`Vous vous reposez et récupérez ${gain} PV (PV actuels ${player.hp})`);
-    player.firstRest = false;
-  } else {
-    const roll = Math.floor(Math.random()*20)+1;
-    log(`Lancer D20 pour continuer à se reposer : ${roll}`);
-    if(roll>5){
-      const gain = Math.floor(Math.random()*6)+1;
-      player.hp = Math.min(player.hp+gain,player.hpMax);
-      log(`Succès ! Vous récupérez ${gain} PV supplémentaires (PV actuels ${player.hp})`);
-    } else {
-      log(`Échec ! Vous quittez le feu de camp et un événement combat commence.`);
-      startCombat();
-      return;
-    }
-  }
+// -------------------- FEU DE CAMP --------------------
+function startCamp(){log("Feu de camp : choisissez Se reposer ou Partir");}
+function restCamp(){
+  if(player.firstRest){const heal=rand(6);player.hp+=heal;if(player.hp>player.hpMax)player.hp=player.hpMax;log(`Se repose, PV +${heal}=${player.hp}`);player.firstRest=false;}
+  else{const roll=rand(20);if(roll>5){const heal=rand(6);player.hp+=heal;if(player.hp>player.hpMax)player.hp=player.hpMax;log(`Se repose, PV +${heal}=${player.hp}`);}
+  else{log("Échec repos, départ vers Combat");currentEvent='Combat';startCombat();}}
   drawScene();
 }
 
-/* -------------------- LANCEMENT -------------------- */
+// -------------------- START --------------------
 startGame();
 </script>
 </body>
