@@ -20,10 +20,8 @@ button:hover { transform:scale(1.05); } button:active { transform:scale(0.95); }
 .phys { background:#ffcccc; border:2px solid #ff3333; color:#990000; }
 .ment { background:#cce0ff; border:2px solid #3399ff; color:#003399; }
 .bonus { background:#fff; border:2px solid #000; color:#000; }
-
 #expBarContainer { width:90%; height:20px; background:#555; border-radius:10px; margin:0 auto 10px auto; overflow:hidden; }
 #expBar { height:100%; width:0%; background:#ffcc00; }
-
 #levelPopup, #eventPopup { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); display:none; justify-content:center; align-items:center; z-index:10; }
 #levelPopup div, #eventPopup div { background:#222; padding:20px; border-radius:12px; text-align:center; }
 .levelChoiceBtn, .eventChoiceBtn { margin:5px; padding:10px 15px; border-radius:8px; border:none; font-weight:bold; cursor:pointer; }
@@ -60,9 +58,9 @@ button:hover { transform:scale(1.05); } button:active { transform:scale(0.95); }
 </div>
 
 <script>
-// --- Classe personnage selon registre ---
+// --- Classe personnage ---
 class Character {
-  constructor(name, level=1) {
+  constructor(name, level=1){
     this.name=name; this.level=level; this.hp=10; this.maxHp=10;
     this.physDice=[6]; this.mentDice=[6]; this.bonusDice=[4];
     this.resPhys=[6]; this.resMent=[6];
@@ -91,9 +89,7 @@ class Character {
   gainExp(amount){ this.exp+=amount; log(`${this.name} gagne ${amount} EXP (total ${this.exp}/${this.nextLevelExp})`); updateExpBar(); if(this.exp>=this.nextLevelExp) showLevelPopup(); }
   levelUp(choice){
     this.level++; this.exp=0; this.nextLevelExp+=10;
-    // PV max + 1D6
-    const pvGain=Math.floor(Math.random()*6)+1;
-    this.maxHp+=pvGain; this.hp=this.maxHp;
+    const pvGain=Math.floor(Math.random()*6)+1; this.maxHp+=pvGain; this.hp=this.maxHp;
     if(choice==='phys') this.physDice.push(6);
     if(choice==='ment') this.mentDice.push(6);
     if(choice==='bonus') this.bonusDice.push(4);
@@ -111,18 +107,12 @@ const canvas=document.getElementById('battleCanvas'); const ctx=canvas.getContex
 function drawBattle(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
   if(player){
-    // Joueur triangle vert
     ctx.fillStyle='green'; ctx.beginPath(); ctx.moveTo(50,120); ctx.lineTo(30,140); ctx.lineTo(70,140); ctx.closePath(); ctx.fill();
-    // Barre PV joueur
-    ctx.fillStyle='red'; ctx.fillRect(30,145,40*(player.hp/player.maxHp),8);
-    ctx.strokeStyle='white'; ctx.strokeRect(30,145,40,8);
+    ctx.fillStyle='red'; ctx.fillRect(30,145,40*(player.hp/player.maxHp),8); ctx.strokeStyle='white'; ctx.strokeRect(30,145,40,8);
   }
   if(enemy){
-    // Ennemi cercle rouge
     ctx.fillStyle='red'; ctx.beginPath(); ctx.arc(250,130,15,0,Math.PI*2); ctx.fill();
-    // Barre PV ennemi
-    ctx.fillStyle='red'; ctx.fillRect(235,145,30*(enemy.hp/enemy.maxHp),8);
-    ctx.strokeStyle='white'; ctx.strokeRect(235,145,30,8);
+    ctx.fillStyle='red'; ctx.fillRect(235,145,30*(enemy.hp/enemy.maxHp),8); ctx.strokeStyle='white'; ctx.strokeRect(235,145,30,8);
   }
 }
 
