@@ -61,7 +61,7 @@ class Character {
   rollDice(diceArr, cssClass) { const rolls=diceArr.map(s=>Math.floor(Math.random()*s)+1); logDice(rolls, cssClass); return rolls.reduce((a,b)=>a+b,0); }
   rollAction(type) { let base=0; if(type==='phys') base=this.rollDice(this.physDice,'phys'); if(type==='ment') base=this.rollDice(this.mentDice,'ment'); const bonus=this.rollDice(this.bonusDice,'bonus'); return base+bonus; }
   rollResistance(type) { return type==='phys'?this.rollDice(this.resPhys,'phys'):this.rollDice(this.resMent,'ment'); }
-  takeDamage(dmg,type){ const resist=this.rollResistance(type); if(resist>=dmg){ log(`${this.name} bloque l'attaque (${resist} >= ${dmg}) !`); return; } const taken=dmg-resist; this.hp-=taken; log(`${this.name} subit ${taken} dégâts (${dmg}-${resist}), PV restants: ${this.hp}`); }
+  takeDamage(dmg,type){ const resist=this.rollResistance(type); if(resist>=dmg){ log(`${this.name} bloque l'attaque (${resist} >= ${dmg}) !`); return; } const taken=dmg-resist; this.hp-=taken; log(`${this.name} subit ${taken} dégâts (${dmg}-${resist}), PV restants: ${this.hp}`); drawBattle(); checkPlayerDefeat(); }
   gainExp(amount){ this.exp+=amount; log(`${this.name} gagne ${amount} EXP (total ${this.exp}/${this.nextLevelExp})`); updateExpBar(); if(this.exp>=this.nextLevelExp) showLevelPopup(); }
   levelUp(choice){ this.level++; this.exp=0; this.nextLevelExp+=10; if(choice==='phys') this.physDice.push(6); else if(choice==='ment') this.mentDice.push(6); else if(choice==='bonus') this.bonusDice.push(4); log(`${this.name} passe niveau ${this.level} et ajoute un dé ${choice}`); updateExpBar(); }
 }
@@ -77,7 +77,6 @@ function drawBattle(){
 
   // Joueur - triangle vert
   ctx.fillStyle='green'; ctx.beginPath(); ctx.moveTo(50,120); ctx.lineTo(30,140); ctx.lineTo(70,140); ctx.closePath(); ctx.fill();
-  ctx.fillStyle='white'; ctx.font='12px Arial'; ctx.textAlign='center';
   // Barre PV joueur
   ctx.fillStyle='red'; ctx.fillRect(30,145,40*(player.hp/10),8);
   ctx.strokeStyle='white'; ctx.strokeRect(30,145,40,8);
@@ -85,11 +84,57 @@ function drawBattle(){
   // Ennemi - cercle rouge
   ctx.fillStyle='red'; ctx.beginPath(); ctx.arc(250,130,15,0,Math.PI*2); ctx.fill();
   // Barre PV ennemi
-  ctx.fillStyle='red'; ctx.fillRect(235,145,30*(enemy.hp/10),8); ctx.strokeStyle='white'; ctx.strokeRect(235,145,30,8);
+  ctx.fillStyle='red'; ctx.fillRect(235,145,30*(enemy.hp/10),8);
+  ctx.strokeStyle='white'; ctx.strokeRect(235,145,30,8);
 }
 
 // --- EXP Bar ---
 function updateExpBar(){ const perc=Math.min((player.exp/player.nextLevelExp)*100,100); document.getElementById('expBar').style.width=perc+'%'; }
 
+// --- Niveau Popup ---
+function showLevelPopup(){ document.getElementById('levelPopup').style.display='flex'; }
+function chooseLevelDice(choice){ player.levelUp(choice); document.getElementById('levelPopup').style.display='none'; spawnEnemy(); drawBattle(); }
+
 // --- Jeu ---
-let player,enemy; function startGame(){
+let player,enemy;
+
+function startGame(){ 
+  document.getElementById('log').innerHTML=''; 
+  player=new Character('Héros'); 
+  spawnEnemy(); 
+  drawBattle(); 
+  updateExpBar();
+  log('La partie commence !'); 
+}
+
+function spawnEnemy(){ 
+  enemy=new Character('Ennemi',player.level); 
+  enemy.hp=6+player.level*2; 
+  log(`Un ennemi de niveau ${enemy.level} apparaît avec ${enemy.hp} PV !`); 
+  drawBattle();
+}
+
+function playerAction(type){
+  if(!player||!enemy) return;
+  if(player.hp<=0 || enemy.hp<=0) return;
+  
+  // Joueur attaque
+  const dmg=player.rollAction(type);
+  enemy.takeDamage(dmg,'phys');
+
+  if(enemy.hp>0){
+    // Ennemi attaque
+    const edmg=enemy.rollAction('phys');
+    player.takeDamage(edmg,'phys');
+  } else {
+    log("L'ennemi est vaincu !");
+    player.gainExp(5);
+  }
+
+  drawBattle();
+}
+
+function checkPlayerDefeat(){ if(player.hp<=0){ log('Game Over !'); drawBattle(); } }
+</script>
+</body>
+</html>
